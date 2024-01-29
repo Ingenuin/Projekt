@@ -6,17 +6,66 @@ from database_inheritance import DateSerializer
 from database_inheritance import TimeSerializer
 from streamlit_option_menu import option_menu
 
+class Login:
+    def __init__(self):
+        self.username = None
+        self.password = None
+        self.logged_in = False
+
+def get_session_state():
+    # Use SessionState to track the login status
+    if "login" not in st.session_state:
+        st.session_state.login = Login()
+    return st.session_state.login
+
+def login():
+    st.sidebar.header("Login")
+    login_instance = get_session_state()
+
+    # Check the login status
+    if not login_instance.logged_in:
+        # Get username and password from user input
+        login_instance.username = st.sidebar.text_input("Username")
+        login_instance.password = st.sidebar.text_input("Password", type="password")
+
+        # Check if username and password are valid
+        if st.sidebar.button("Login"):
+            if validate_credentials(login_instance.username, login_instance.password):
+                login_instance.logged_in = True
+                st.sidebar.success("Login successful!")
+
+    return login_instance.logged_in
+
+def validate_credentials(username, password):
+    allowed_users = {"user1": "password1", "user2": "password2"} 
+    return username in allowed_users and password == allowed_users[username]
+
 def main():
+    login_instance = get_session_state()
 
-    selected = option_menu(None, ["Home", "User", "Devices", 'Settings'], 
-    icons=['house', 'universal-access', "tools", 'gear'], 
-    menu_icon="cast", default_index=0, orientation="horizontal")
+    if not login_instance.logged_in:
+        # Show login fields only if not logged in
+        login()
 
-    if selected == "User":
-        manage_users()
-    elif selected == "Devices":
-        manage_devices()
+    if login_instance.logged_in:
+        # User is logged in, show the main application
+        selected = option_menu(None, ["Home", "User", "Devices", 'Settings'],
+                               icons=['house', 'universal-access', "tools", 'gear'],
+                               menu_icon="cast", default_index=0, orientation="horizontal")
 
+        if selected == "User":
+            manage_users()
+        elif selected == "Devices":
+            manage_devices()
+
+# Additional UI elements to hide the login fields after successful login
+    if login_instance.logged_in:
+        st.sidebar.text(f"Logged in as: {login_instance.username}")
+        st.sidebar.button("Logout", on_click=logout)
+
+def logout():
+    st.sidebar.success("Logged out successfully!")
+    st.session_state.login.logged_in = False
 
 def manage_users():
     st.header("User Management")
