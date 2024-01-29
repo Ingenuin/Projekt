@@ -10,6 +10,7 @@ class Login:
     def __init__(self):
         self.username = None
         self.password = None
+        self.role = None
         self.logged_in = False
 
 def get_session_state():
@@ -32,13 +33,23 @@ def login():
         if st.sidebar.button("Login"):
             if validate_credentials(login_instance.username, login_instance.password):
                 login_instance.logged_in = True
+                login_instance.role = determine_role(login_instance.username)
                 st.sidebar.success("Login successful!")
 
     return login_instance.logged_in
 
 def validate_credentials(username, password):
-    allowed_users = {"user1": "password1", "user2": "password2"} 
+    allowed_users = {"admin": "password1", "student": "password2"} 
     return username in allowed_users and password == allowed_users[username]
+
+def determine_role(username):
+    # Determine the role of the user based on their username
+    if username == "admin":
+        return "admin"
+    elif username == "student":
+        return "student"
+    else:
+        return None
 
 def main():
     login_instance = get_session_state()
@@ -48,24 +59,35 @@ def main():
         login()
 
     if login_instance.logged_in:
-        # User is logged in, show the main application
-        selected = option_menu(None, ["Home", "User", "Devices", 'Settings'],
+
+        # Check user role before displaying certain options
+        if login_instance.role == "admin":
+            selected = option_menu(None, ["Home", "User", "Devices", 'Settings'],
                                icons=['house', 'universal-access', "tools", 'gear'],
                                menu_icon="cast", default_index=0, orientation="horizontal")
+            
+            if selected == "User":
+                manage_users()
+            elif selected == "Devices":
+                manage_devices()
 
-        if selected == "User":
-            manage_users()
-        elif selected == "Devices":
-            manage_devices()
+        elif login_instance.role == "student":
+            selected = option_menu(None, ["Home", "User"],
+                               icons=['house', 'universal-access', "tools", 'gear'],
+                               menu_icon="cast", default_index=0, orientation="horizontal")
+            if selected == "User":
+                manage_users()
+            
 
-# Additional UI elements to hide the login fields after successful login
+    # Additional UI elements to hide the login fields after successful login
     if login_instance.logged_in:
-        st.sidebar.text(f"Logged in as: {login_instance.username}")
+        st.sidebar.text(f"Logged in as {login_instance.role}: {login_instance.username}")
         st.sidebar.button("Logout", on_click=logout)
 
 def logout():
     st.sidebar.success("Logged out successfully!")
     st.session_state.login.logged_in = False
+    st.session_state.login.role = None
 
 def manage_users():
     st.header("User Management")
@@ -214,5 +236,3 @@ def delete_device(device_name):
 
 if __name__ == "__main__":
     main()
-
-
