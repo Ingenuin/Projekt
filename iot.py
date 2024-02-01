@@ -1,28 +1,25 @@
 import streamlit as st
 from users import User
-from devices  import Table
+from devices import Desk
 from database_inheritance import DatabaseConnector
-from database_inheritance import DateSerializer
-from database_inheritance import TimeSerializer
 from streamlit_option_menu import option_menu
 
-table_types = ['3D-printer', 'soldering_station (workbench)', 'AC', 'plain', 'workbench']
+desk_types = ['3D-printer', 'soldering_station (workbench)', 'AC', 'plain', 'workbench']
 
 
 def main():
 
-    selected = option_menu(None, ["Home", "User", "Tables", 'Settings'], 
-    icons=['house', 'universal-access', "ui-checks-grid", 'gear'], 
+    selected = option_menu(None, ["User", "Desks"], 
+    icons=['universal-access', "ui-checks-grid"], 
     menu_icon="cast", default_index=0, orientation="horizontal")
 
     if selected == "User":
         manage_users()
-    elif selected == "Tables":
-        manage_tables()
+    elif selected == "Desks":
+        manage_desks()
 
 
 def manage_users():
-    st.header("User Management")
 
     action = option_menu(None, ["Add", "Change", "Delete"], 
     icons=['plus', 'arrow-repeat', "x"], 
@@ -94,82 +91,78 @@ def delete_user(user_email):
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-def manage_tables():
-    tables  = Table.find_all()
-    st.header("Table Management")
+def manage_desks():
+    desks  = Desk.find_all()
 
     st.image('Labor.png')
-    #table_to_configure = st.selectbox("Select table to display/configure:", [table['table_name'] for table in tables])
 
-    #sollte nur fuer admin sichtbar sein   
-    action = st.radio("Select action:", ["Add Table", "Change Table", "Reserve Table", "Delete Table"])
+    action = option_menu(None, ["Add", "Change", "Delete"], 
+    icons=['plus', 'arrow-repeat', "x"], 
+    menu_icon="cast", default_index=0, orientation="horizontal")
 
+    if action == "Add":
 
-    if action == "Add Table":
-        # Add new table
-        #st.subheader("Add New Table")
-        table_name = st.text_input("Table ID:")
-        selected_table_type = st.selectbox("Select a Tabletype:", table_types)
+        desk_name = st.text_input("Desk ID:")
+        selected_desk_type = st.selectbox("Select a Desktype:", desk_types)
 
-        if st.button("Add Table"):
-            if not table_name or not selected_table_type:
-                st.error("Table ID and Table type are required.")
-            elif Table.load_by_id(table_name):
-                st.error("Table_ID already used")
+        if st.button("Add Desk"):
+            if not desk_name or not selected_desk_type:
+                st.error("Desk ID and Desk type are required.")
+            elif Desk.load_by_id(desk_name):
+                st.error("Desk already used")
             else:
-                new_table = Table(table_name, selected_table_type)
-                new_table.store()
-                st.success("Table added successfully!")
+                new_desk = Desk(desk_name, selected_desk_type)
+                new_desk.store()
+                st.success("Desk added successfully!")
 
 
-    elif action == "Change Table":
+    elif action == "Change":
 
-        table_to_change = st.selectbox("Select table to change:", [table['table_name'] for table in tables])#waehlfeld um tischnummer zu waehlen 
-        selected_table = Table.load_by_id(table_to_change) #tisch wird mit id als objekt geladen
-        current_table_type = selected_table.table_type #tischart des gewaehlten tischs wird festgelegt
-        new_type = st.selectbox("Select new table type", table_types, index=table_types.index(current_table_type), key='change_table_selectbox')#neue tischart kann gewaehlt werden, die alte ist als default eingestellt
+        desk_to_change = st.selectbox("Select desk to change:", [desk['desk_name'] for desk in desks])#waehlfeld um tischnummer zu waehlen 
+        selected_desk = Desk.load_by_id(desk_to_change) #tisch wird mit id als objekt geladen
+        current_desk_type = selected_desk.desk_type #tischart des gewaehlten tischs wird festgelegt
+        new_type = st.selectbox("Select new desk type", desk_types, index=desk_types.index(current_desk_type), key='change_desk_selectbox')#neue tischart kann gewaehlt werden, die alte ist als default eingestellt
  
-        if table_to_change:
+        if desk_to_change:
             if st.button("Change"):
-                change_table(table_to_change, new_type)
+                change_desk(desk_to_change, new_type)
         else:
-            st.error("Table not found.")
+            st.error("Desk not found.")
         
 
-    elif action == "Delete Table":
-        # Delete existing table
-        #st.subheader("Delete Device")
-        table_name_to_delete = st.selectbox("Select table name to delete:", [table['table_name'] for table in tables])
+    elif action == "Delete":
 
-        if st.button("Delete Table"):
-            delete_table(table_name_to_delete)
+        desk_name_to_delete = st.selectbox("Select desk name to delete:", [desk['desk_name'] for desk in desks])
+
+        if st.button("Delete Desk"):
+            delete_desk(desk_name_to_delete)
 
 
-    tables_to_show = st.selectbox("Select table to display:", [table['table_name'] for table in tables])
+    desk_to_show = st.selectbox("Select desk to display:", [desk['desk_name'] for desk in desks])
 
-    selected_table = Table.load_by_id(tables_to_show)
-    if selected_table:
-        st.text("Table Info:")
-        st.text(f"  ID: {selected_table.id}")
-        st.text(f"  Table Name: {selected_table.table_name}")
-        st.text(f"Tableetype: {selected_table.table_type}")
+    selected_desk = Desk.load_by_id(desk_to_show)
+    if selected_desk:
+        st.text("Desk Info:")
+        st.text(f"  ID: {selected_desk.id}")
+        st.text(f"  Desk Name: {selected_desk.desk_name}")
+        st.text(f"Desktype: {selected_desk.desk_type}")
     else:
-        st.text("Table not found.")
+        st.text("Desk not found.")
 
-def change_table(table_name, new_type):
-    table_to_change = Table.load_by_id(table_name)
-    table_to_change.table_type = new_type
-    table_to_change.store()
-    st.success("Table changed successfully!")
+def change_desk(desk_name, new_type):
+    desk_to_change = Desk.load_by_id(desk_name)
+    desk_to_change.desk_type = new_type
+    desk_to_change.store()
+    st.success("Desk changed successfully!")
 
 
-def delete_table(table_name):
-    table_to_delete = Table.load_by_id(table_name)
-    if table_to_delete:
-        table_to_delete.delete()
-        st.success("Table deleted successfully!")
+def delete_desk(desk_name):
+    desk_to_delete = Desk.load_by_id(desk_name)
+    if desk_to_delete:
+        desk_to_delete.delete()
+        st.success("Desk deleted successfully!")
     else:
-        st.error("Table not found.")
+        st.error("Desk not found.")
 
 if __name__ == "__main__":
     main()

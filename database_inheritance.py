@@ -1,5 +1,5 @@
 import os
-from tinydb import TinyDB
+from tinydb import TinyDB, Query
 from tinydb.table import Table
 from tinydb.storages import JSONStorage
 from datetime import datetime, date, time
@@ -7,30 +7,32 @@ from tinydb_serialization import Serializer, SerializationMiddleware
 from tinydb_serialization.serializers import DateTimeSerializer
 
 class DatabaseConnector:
-    """
-    Usage: DatabaseConnector().get_devices_table()
-    The information about the actual database file path and the serializer objects has been abstracted away into this class
-    """
-    # Turns the class into a naive singleton
-    # --> not thread safe and doesn't handle inheritance particularly well
     __instance = None
+
     def __new__(cls):
         if cls.__instance is None:
             cls.__instance = super().__new__(cls)
             cls.__instance.path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database.json')
+            cls.__instance.db = TinyDB(cls.__instance.path, storage=serializer)
 
         return cls.__instance
     
-    def get_devices_table(self) -> Table:
-        return TinyDB(self.__instance.path, storage=serializer).table('devices')
+    def get_desks_table(self) -> Table:
+        table_name = 'desks'
+        desks_table = self.__instance.db.table(table_name)
+
+        if not desks_table.contains(Query().id.exists()):
+            initial_desk_data = {'id': 1, 'desk_name': '1', 'desk_type': '3D-printer'}           
+            desks_table.insert(initial_desk_data)
+        return desks_table
     
     def get_users_table(self) -> Table:
-        return TinyDB(self.__instance.path, storage=serializer).table('users')
-
-#%%
+        table_name = 'users'
+        if not self.__instance.db.table(table_name).contains(Query().id.exists()):
+            self.__instance.db.table(table_name).insert({'id': 1, 'user_name': 'userone', 'email': 'userone@mci.edu'}) 
+        return self.__instance.db.table(table_name)
 
 class DateSerializer(Serializer):
-    # The class this serializer handles --> must be date instead of datetime.date
     OBJ_CLASS = date
 
     def encode(self, obj):
@@ -40,7 +42,6 @@ class DateSerializer(Serializer):
         return date.fromisoformat(s)
 
 class TimeSerializer(Serializer):
-    # The class this serializer handles --> must be time instead of datetime.time
     OBJ_CLASS = time
     
     def encode(self, obj):

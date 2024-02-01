@@ -1,43 +1,39 @@
-import os
-from datetime import datetime
-
-from users import User
 from serializer import Serializable
 from database_inheritance import DatabaseConnector
 from tinydb import Query
 
-table_types = ['3D-printer', 'soldering_station', 'AC', 'plain']
+desk_types = ['3D-printer', 'soldering_station', 'AC', 'plain']
 
-class Table(Serializable):
+class Desk(Serializable):
 
-    def __init__(self, table_name: str, table_type: str):
-        super().__init__(table_name)
-        self.table_name = table_name
-        self.table_type = table_type
+    def __init__(self, desk_name: str, desk_type: str):
+        super().__init__(desk_name)
+        self.desk_name = desk_name
+        self.desk_type = desk_type
 
     @classmethod
     def get_db_connector(cls):
-        return DatabaseConnector().get_devices_table()
+        return DatabaseConnector().get_desks_table()
 
     def store(self):
-        print("Storing table...")
+        print("Storing desk...")
         super().store()
     
     @classmethod
     def load_by_id(cls, id):
-        print("Loading table...")
+        print("Loading desk...")
         data = super().load_by_id(id)
         if data:
-            return cls(data['table_name'], data['table_type'])
+            return cls(data['desk_name'], data['desk_type'])
         else:
             return None
     
     def delete(self):
         super().delete()
-        print("Table deleted.")
+        print("Desk deleted.")
 
     def __str__(self) -> str:
-        return f"Table: {self.table_name} ({self.table_type})\n"
+        return f"Desk: {self.desk_name} ({self.desk_type})\n"
 
     def __repr__(self) -> str:
         return self.__str__()
