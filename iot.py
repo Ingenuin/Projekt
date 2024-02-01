@@ -1,21 +1,24 @@
 import streamlit as st
 from users import User
-from devices import Device
+from devices  import Table
 from database_inheritance import DatabaseConnector
 from database_inheritance import DateSerializer
 from database_inheritance import TimeSerializer
 from streamlit_option_menu import option_menu
 
+table_types = ['3D-printer', 'soldering_station (workbench)', 'AC', 'plain', 'workbench']
+
+
 def main():
 
-    selected = option_menu(None, ["Home", "User", "Devices", 'Settings'], 
-    icons=['house', 'universal-access', "tools", 'gear'], 
+    selected = option_menu(None, ["Home", "User", "Tables", 'Settings'], 
+    icons=['house', 'universal-access', "ui-checks-grid", 'gear'], 
     menu_icon="cast", default_index=0, orientation="horizontal")
 
     if selected == "User":
         manage_users()
-    elif selected == "Devices":
-        manage_devices()
+    elif selected == "Tables":
+        manage_tables()
 
 
 def manage_users():
@@ -91,77 +94,82 @@ def delete_user(user_email):
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-def manage_devices():
-    st.header("Device Management")
+def manage_tables():
+    tables  = Table.find_all()
+    st.header("Table Management")
 
-    # Choose device action (add, change, or delete)
-    action = st.radio("Select action:", ["Add Device", "Change Device", "Delete Device"])
-   
-    if action == "Add Device":
-        # Add new device
-        st.subheader("Add New Device")
-        device_name = st.text_input("Device Name:")
-        managed_by_user_id = st.selectbox("Select responsible user:", [user['email'] for user in User.find_all()])
+    st.image('Labor.png')
+    #table_to_configure = st.selectbox("Select table to display/configure:", [table['table_name'] for table in tables])
+
+    #sollte nur fuer admin sichtbar sein   
+    action = st.radio("Select action:", ["Add Table", "Change Table", "Reserve Table", "Delete Table"])
 
 
-        if st.button("Add Device"):
-            if not device_name or not managed_by_user_id:
-                st.error("Device name, device ID, and responsible user ID are required.")
-            elif not User.load_by_id(managed_by_user_id):
-                st.error("Invalid responsible user ID. Please provide a valid user ID.")
+    if action == "Add Table":
+        # Add new table
+        #st.subheader("Add New Table")
+        table_name = st.text_input("Table ID:")
+        selected_table_type = st.selectbox("Select a Tabletype:", table_types)
+
+        if st.button("Add Table"):
+            if not table_name or not selected_table_type:
+                st.error("Table ID and Table type are required.")
+            elif Table.load_by_id(table_name):
+                st.error("Table_ID already used")
             else:
-                new_device = Device(device_name, managed_by_user_id)
-                new_device.store()
-                st.success("Device added successfully!")
-    elif action == "Change Device":
-        # Change existing device (only allows changing the name)
-        st.subheader("Change Device")
-        device_name_to_change = st.text_input("Enter device name to change:")
-        new_name = st.text_input("Enter new name:")
+                new_table = Table(table_name, selected_table_type)
+                new_table.store()
+                st.success("Table added successfully!")
 
-        if st.button("Change Device"):
-            change_device(device_name_to_change, new_name)
 
-    elif action == "Delete Device":
-        # Delete existing device
-        st.subheader("Delete Device")
-        device_name_to_delete = st.text_input("Enter device name to delete:")
+    elif action == "Change Table":
 
-        if st.button("Delete Device"):
-            delete_device(device_name_to_delete)
+        table_to_change = st.selectbox("Select table to change:", [table['table_name'] for table in tables])#waehlfeld um tischnummer zu waehlen 
+        selected_table = Table.load_by_id(table_to_change) #tisch wird mit id als objekt geladen
+        current_table_type = selected_table.table_type #tischart des gewaehlten tischs wird festgelegt
+        new_type = st.selectbox("Select new table type", table_types, index=table_types.index(current_table_type), key='change_table_selectbox')#neue tischart kann gewaehlt werden, die alte ist als default eingestellt
+ 
+        if table_to_change:
+            if st.button("Change"):
+                change_table(table_to_change, new_type)
+        else:
+            st.error("Table not found.")
+        
 
-    devices = Device.find_all()
-    devices_to_show = st.selectbox("Select device to display:", [device['device_name'] for device in devices])
+    elif action == "Delete Table":
+        # Delete existing table
+        #st.subheader("Delete Device")
+        table_name_to_delete = st.selectbox("Select table name to delete:", [table['table_name'] for table in tables])
 
-    selected_device = Device.load_by_id(devices_to_show)
-    if selected_device:
-        st.text("Device Info:")
-        st.text(f"  ID: {selected_device.id}")
-        st.text(f"  Device Name: {selected_device.device_name}")
-        st.text(f"  Managed By User ID: {selected_device.managed_by_user_id}")
-        st.text(f"  Is Active: {selected_device.is_active}")
-        st.text(f"  End of Life: {selected_device.end_of_life}")
-        st.text(f"  Creation Date: {selected_device._Device__creation_date}")
-        st.text(f"  Last Update: {selected_device._Device__last_update}")
+        if st.button("Delete Table"):
+            delete_table(table_name_to_delete)
+
+
+    tables_to_show = st.selectbox("Select table to display:", [table['table_name'] for table in tables])
+
+    selected_table = Table.load_by_id(tables_to_show)
+    if selected_table:
+        st.text("Table Info:")
+        st.text(f"  ID: {selected_table.id}")
+        st.text(f"  Table Name: {selected_table.table_name}")
+        st.text(f"Tableetype: {selected_table.table_type}")
     else:
-        st.text("Device not found.")
+        st.text("Table not found.")
 
-def change_device(device_name, new_name):
-    device_to_change = Device.load_by_id(device_name)
-    if device_to_change:
-        device_to_change.name = new_name
-        device_to_change.store()
-        st.success("Device changed successfully!")
-    else:
-        st.error("Device not found.")
+def change_table(table_name, new_type):
+    table_to_change = Table.load_by_id(table_name)
+    table_to_change.table_type = new_type
+    table_to_change.store()
+    st.success("Table changed successfully!")
 
-def delete_device(device_name):
-    device_to_delete = Device.load_by_id(device_name)
-    if device_to_delete:
-        device_to_delete.delete()
-        st.success("Device deleted successfully!")
+
+def delete_table(table_name):
+    table_to_delete = Table.load_by_id(table_name)
+    if table_to_delete:
+        table_to_delete.delete()
+        st.success("Table deleted successfully!")
     else:
-        st.error("Device not found.")
+        st.error("Table not found.")
 
 if __name__ == "__main__":
     main()
