@@ -1,6 +1,8 @@
 import streamlit as st
 from users import User
 from devices import Device
+from tinydb import Query
+from registrierung import Registrierung
 from database_inheritance import DatabaseConnector
 from database_inheritance import DateSerializer
 from database_inheritance import TimeSerializer
@@ -14,10 +16,12 @@ class Login:
         self.logged_in = False
 
 def get_session_state():
-    # Use SessionState to track the login status
     if "login" not in st.session_state:
         st.session_state.login = Login()
-    return st.session_state.login
+    if "registrierung" not in st.session_state:
+        st.session_state.registrierung = Registrierung()
+    return st.session_state.login, st.session_state.registrierung
+
 
 def login():
     st.sidebar.header("Login")
@@ -26,7 +30,7 @@ def login():
     # Check the login status
     if not login_instance.logged_in:
         # Get username and password from user input
-        login_instance.username = st.sidebar.text_input("Username")
+        login_instance.username = st.sidebar.text_input("Name")
         login_instance.password = st.sidebar.text_input("Password", type="password")
 
         # Check if username and password are valid
@@ -37,6 +41,23 @@ def login():
                 st.sidebar.success("Login successful!")
 
     return login_instance.logged_in
+
+def registrierung():
+    with st.form("Registrierung"):
+        st.header("Registrierung")
+        
+        registrierung_username = st.text_input("Name")
+        registrierung_email = st.text_input("email")
+        registrierung_password = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("speichern")
+            # Check if username and password are valid
+        if submitted:
+            new_registrierung = Registrierung(registrierung_username, registrierung_email, registrierung_password)
+            new_registrierung.store()
+            st.success("Registrierung successful!")
+       
+
+    
 
 def validate_credentials(username, password):
     allowed_users = {"admin": "password1", "student": "password2"} 
@@ -50,45 +71,65 @@ def determine_role(username):
         return "student"
     else:
         return None
+    
+def got_to_state_registrierung():
+    st.session_state["state"] = "registrierung"
+
+def got_to_state_login():
+    st.session_state["state"] = "login"
+
+def got_to_state_eingeloggt():
+    st.session_state["state"] = "eingeloggt"
 
 def main():
-    login_instance = get_session_state()
+    st.header("Studierendenwerkstatt")
+    if "state" not in st.session_state:
 
-    if not login_instance.logged_in:
-        # Show login fields only if not logged in
-        login()
+        if st.button("Registrierung"):
+            got_to_state_registrierung()
 
-    if login_instance.logged_in:
+        elif st.button("Login"):
+            got_to_state_login()
 
-        # Check user role before displaying certain options
-        if login_instance.role == "admin":
-            selected = option_menu(None, ["Home", "User", "Devices", 'Settings'],
-                               icons=['house', 'universal-access', "tools", 'gear'],
-                               menu_icon="cast", default_index=0, orientation="horizontal")
+
+    elif st.session_state["state"] == "registrierung":
+        with st.form("Registrierung"):
+            st.header("Registrierung")
             
-            if selected == "User":
-                manage_users()
-            elif selected == "Devices":
-                manage_devices()
+            registrierung_username = st.text_input("Name")
+            registrierung_email = st.text_input("email")
+            registrierung_password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("speichern")
+            got_to_state_login()
+                
+            if submitted:
+                new_registrierung = Registrierung(registrierung_username, registrierung_email, registrierung_password)
+                new_registrierung.store()
+                st.success("Registrierung successful!")
 
-        elif login_instance.role == "student":
-            selected = option_menu(None, ["Home", "User"],
-                               icons=['house', 'universal-access', "tools", 'gear'],
-                               menu_icon="cast", default_index=0, orientation="horizontal")
-            if selected == "User":
-                manage_users()
+ 
+    elif st.session_state["state"] == "login":
+        with st.form("Login"):
+            st.header("Login")
+            login_name = st.text_input("Name")
+            login_password = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Login")
+
+            if submit:
+                # Check login credentials against the database
+                user_query = Query().email == login_name
+                user_query &= Query().password == login_password
+
+                user_data = Registrierung.get_db_connector().get(user_query)
+
+                if user_data:
+                    st.success("Login successful!")
+                    # Set the login state or perform other actions here
+                else:
+                    st.error("Invalid username or password.")
             
-
-    # Additional UI elements to hide the login fields after successful login
-    if login_instance.logged_in:
-        st.sidebar.text(f"Logged in as {login_instance.role}: {login_instance.username}")
-        st.sidebar.button("Logout", on_click=logout)
-
-def logout():
-    st.sidebar.success("Logged out successfully!")
-    st.session_state.login.logged_in = False
-    st.session_state.login.role = None
-
+        
+ 
 def manage_users():
     st.header("User Management")
 
