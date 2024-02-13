@@ -1,22 +1,29 @@
 import streamlit as st
 from users import User
-from devices import Desk
+from desks import Desk
 from database_inheritance import DatabaseConnector
 from streamlit_option_menu import option_menu
+import reservations as rs
 
 desk_types = ['3D-printer', 'soldering_station (workbench)', 'AC', 'plain', 'workbench']
 
+st.set_page_config(layout="wide")
+menu_column, plot_column = st.columns([1.5, 1])
 
 def main():
 
-    selected = option_menu(None, ["User", "Desks"], 
-    icons=['universal-access', "ui-checks-grid"], 
-    menu_icon="cast", default_index=0, orientation="horizontal")
+    with menu_column:
 
-    if selected == "User":
-        manage_users()
-    elif selected == "Desks":
-        manage_desks()
+        selected = option_menu(None, ["User", "Desks", "Reservations"], 
+        icons=['universal-access', "ui-checks-grid", "calendar"], 
+        menu_icon="cast", default_index=0, orientation="horizontal")
+
+        if selected == "User":
+            manage_users()
+        elif selected == "Desks":
+            manage_desks()
+        elif selected == "Resrvations":
+            manage_reservations()
 
 
 def manage_users():
@@ -69,7 +76,6 @@ def manage_users():
     st.text(User.load_by_id(user_to_show))
 
 
-
 def change_user(user_email, new_name):
     user_to_change = User.load_by_id(user_email)
     if user_to_change:
@@ -93,8 +99,6 @@ def delete_user(user_email):
 
 def manage_desks():
     desks  = Desk.find_all()
-
-    st.image('Labor.png')
 
     action = option_menu(None, ["Add", "Change", "Delete"], 
     icons=['plus', 'arrow-repeat', "x"], 
@@ -164,7 +168,12 @@ def delete_desk(desk_name):
     else:
         st.error("Desk not found.")
 
+
+#def manage_reservations():
+
+with plot_column:
+    st.image('Labor.png')
+
+
 if __name__ == "__main__":
     main()
-
-
