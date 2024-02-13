@@ -38,7 +38,7 @@ class Registrierung(Serializable):
         return self.get_db_connector().contains(user_query)
 
     def __str__(self):
-        return F"User: {self.name} ({self.email}) ({self.password})"
+        return F"Registrierung: {self.name} ({self.email}) ({self.password})"
 
     def __repr__(self):
         return self.__str__()

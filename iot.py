@@ -7,70 +7,6 @@ from database_inheritance import DatabaseConnector
 from database_inheritance import DateSerializer
 from database_inheritance import TimeSerializer
 from streamlit_option_menu import option_menu
-
-class Login:
-    def __init__(self):
-        self.username = None
-        self.password = None
-        self.role = None
-        self.logged_in = False
-
-def get_session_state():
-    if "login" not in st.session_state:
-        st.session_state.login = Login()
-    if "registrierung" not in st.session_state:
-        st.session_state.registrierung = Registrierung()
-    return st.session_state.login, st.session_state.registrierung
-
-
-def login():
-    st.sidebar.header("Login")
-    login_instance = get_session_state()
-
-    # Check the login status
-    if not login_instance.logged_in:
-        # Get username and password from user input
-        login_instance.username = st.sidebar.text_input("Name")
-        login_instance.password = st.sidebar.text_input("Password", type="password")
-
-        # Check if username and password are valid
-        if st.sidebar.button("Login"):
-            if validate_credentials(login_instance.username, login_instance.password):
-                login_instance.logged_in = True
-                login_instance.role = determine_role(login_instance.username)
-                st.sidebar.success("Login successful!")
-
-    return login_instance.logged_in
-
-def registrierung():
-    with st.form("Registrierung"):
-        st.header("Registrierung")
-        
-        registrierung_username = st.text_input("Name")
-        registrierung_email = st.text_input("email")
-        registrierung_password = st.text_input("Password", type="password")
-        submitted = st.form_submit_button("speichern")
-            # Check if username and password are valid
-        if submitted:
-            new_registrierung = Registrierung(registrierung_username, registrierung_email, registrierung_password)
-            new_registrierung.store()
-            st.success("Registrierung successful!")
-       
-
-    
-
-def validate_credentials(username, password):
-    allowed_users = {"admin": "password1", "student": "password2"} 
-    return username in allowed_users and password == allowed_users[username]
-
-def determine_role(username):
-    # Determine the role of the user based on their username
-    if username == "admin":
-        return "admin"
-    elif username == "student":
-        return "student"
-    else:
-        return None
     
 def got_to_state_registrierung():
     st.session_state["state"] = "registrierung"
@@ -85,11 +21,9 @@ def main():
     st.header("Studierendenwerkstatt")
     if "state" not in st.session_state:
 
-        if st.button("Registrierung"):
-            got_to_state_registrierung()
+        st.button("Registrierung",on_click=got_to_state_registrierung)
 
-        elif st.button("Login"):
-            got_to_state_login()
+        st.button("Login", on_click=got_to_state_login)
 
 
     elif st.session_state["state"] == "registrierung":
@@ -100,13 +34,13 @@ def main():
             registrierung_email = st.text_input("email")
             registrierung_password = st.text_input("Password", type="password")
             submitted = st.form_submit_button("speichern")
-            got_to_state_login()
+            
                 
             if submitted:
                 new_registrierung = Registrierung(registrierung_username, registrierung_email, registrierung_password)
                 new_registrierung.store()
                 st.success("Registrierung successful!")
-
+                got_to_state_login()
  
     elif st.session_state["state"] == "login":
         with st.form("Login"):
@@ -114,9 +48,8 @@ def main():
             login_name = st.text_input("Name")
             login_password = st.text_input("Password", type="password")
             submit = st.form_submit_button("Login")
-
+            
             if submit:
-                # Check login credentials against the database
                 user_query = Query().email == login_name
                 user_query &= Query().password == login_password
 
@@ -124,9 +57,22 @@ def main():
 
                 if user_data:
                     st.success("Login successful!")
+                    got_to_state_eingeloggt()
                     # Set the login state or perform other actions here
                 else:
                     st.error("Invalid username or password.")
+                    
+
+
+    elif st.session_state["state"] == "eingeloggt":
+        selected = option_menu(None, ["User", "Desks"], 
+        icons=['universal-access', "ui-checks-grid"], 
+        menu_icon="cast", default_index=0, orientation="horizontal")
+
+        if selected == "User":
+            manage_users()
+        elif selected == "Desks":
+            manage_devices()
             
         
  
