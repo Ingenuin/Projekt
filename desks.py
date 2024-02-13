@@ -1,5 +1,6 @@
 from serializer import Serializable
 from database_inheritance import DatabaseConnector
+from tinydb import Query
 
 desk_types = ['3D-printer', 'soldering_station', 'AC', 'plain']
 

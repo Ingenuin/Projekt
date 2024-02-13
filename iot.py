@@ -4,6 +4,7 @@ from desks import Desk
 from database_inheritance import DatabaseConnector
 from streamlit_option_menu import option_menu
 import reservations as rs
+import reservations as rs
 
 desk_types = ['3D-printer', 'soldering_station (workbench)', 'AC', 'plain', 'workbench']
 
@@ -100,7 +101,8 @@ def delete_user(user_email):
 def manage_desks():
     desks  = Desk.find_all()
 
-    action = option_menu(None, ["Add", "Change", "Delete"], 
+
+    action = option_menu(None, ["Add", "Change", "Delete", "Reserve"], 
     icons=['plus', 'arrow-repeat', "x"], 
     menu_icon="cast", default_index=0, orientation="horizontal")
 
@@ -118,6 +120,9 @@ def manage_desks():
                 new_desk = Desk(desk_name, selected_desk_type)
                 new_desk.store()
                 st.success("Desk added successfully!")
+    
+    elif action == "Reserve":
+        rs.reserve_desk()
 
 
     elif action == "Change":
