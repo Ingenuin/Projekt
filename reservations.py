@@ -2,7 +2,7 @@ from datetime import datetime as dt
 from serializer import Serializable
 from database_inheritance import DatabaseConnector
 from tinydb import Query
-from devices import Desk
+from desks import Desk
 from streamlit_option_menu import option_menu
 from users import User
 import streamlit as st
