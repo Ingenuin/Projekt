@@ -6,6 +6,7 @@ from datetime import datetime, date, time
 from tinydb_serialization import Serializer, SerializationMiddleware
 from tinydb_serialization.serializers import DateTimeSerializer
 
+
 class DatabaseConnector:
     __instance = None
 
@@ -21,19 +22,45 @@ class DatabaseConnector:
         table_name = 'desks'
         desks_table = self.__instance.db.table(table_name)
 
-        if not desks_table.contains(Query().id.exists()):
-            initial_desk_data = {'id': 1, 'desk_name': '1', 'desk_type': '3D-printer'}           
-            desks_table.insert(initial_desk_data)
+        if not desks_table:
+            # Initialize desks data with 14 desks
+            initial_desk_data = [{'id': str(i), 'desk_name': str(i), 'desk_type': '3D-printer'} for i in range(1, 15)]
+            desks_table.insert_multiple(initial_desk_data)
+
         return desks_table
+
     
     def get_users_table(self) -> Table:
         table_name = 'users'
         if not self.__instance.db.table(table_name).contains(Query().id.exists()):
-            self.__instance.db.table(table_name).insert({'id': 1, 'user_name': 'userone', 'email': 'userone@mci.edu'}) 
+            self.__instance.db.table(table_name).insert({'id': 'admin@mci.edu', 'name': 'Admin', 'email': 'admin@mci.edu','password': 'password'}) 
         return self.__instance.db.table(table_name)
-    
-    def get_registrierung_table(self) -> Table:
-        return TinyDB(self.__instance.path, storage=serializer).table('login')
+
+    def add_reservation_to_table(self, desk_name, user_email, start_datetime, end_datetime):
+        desks_table = self.get_desks_table()
+        desk_query = Query().desk_name == desk_name
+        desk_entry = desks_table.get(desk_query)
+
+        if desk_entry:
+            reservation_data = {
+                'desk_name': desk_name,
+                'user_email': user_email,
+                'start_datetime': start_datetime.isoformat(),
+                'end_datetime': end_datetime.isoformat()
+            }
+            desk_entry.setdefault('reservations', []).append(reservation_data)
+            desks_table.update(desk_entry, desk_query)
+            return True
+        else:
+            return False
+        
+    def get_desk_reservations(self) -> list:
+        desks_table = self.get_desks_table()
+        reservations = []
+        for desk_entry in desks_table.all():
+            if "reservations" in desk_entry:
+                reservations.extend(desk_entry["reservations"])
+        return reservations
 
 class DateSerializer(Serializer):
     OBJ_CLASS = date
