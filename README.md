@@ -1,1 +1,1 @@
-devices nimmr auilodn und in desks umbenennen
+devices nimmr auilodn bzw in desks umbenennen
