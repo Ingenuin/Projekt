@@ -6,25 +6,26 @@ from database_inheritance import DatabaseConnector
 from streamlit_calendar import calendar
 
 def reserve_desk(desks, plot_column):
+
     st.subheader("Reserve Desk")
     desk_name_to_reserve = st.selectbox("Select desk to reserve:", [desk['desk_name'] for desk in desks])
     user_email = st.selectbox("Select user for reservation:", [user['email'] for user in User.find_all()])
 
-    test(plot_column)
-
     # Date selection
-    start_date = st.date_input("Select start date:", min_value=dt.today().date())
-    end_date = st.date_input("Select end date:", min_value=start_date)
+    start_date = st.date_input("Select start date:", min_value=dt.today().date(), value=None)
+    end_date = st.date_input("Select end date:")
 
     # Time selection
     start_time = st.time_input("Select start time:", key="start_time")
     end_time = st.time_input("Select end time:", key="end_time")
 
+    calendar_visualisation(plot_column)   
+
     if st.button("Reserve Desk"):
         # Combine selected date with selected time to get start and end datetime
         start_datetime = dt.combine(start_date, start_time)
         end_datetime = dt.combine(end_date, end_time)
-
+    
         handle_reserve_desk(desk_name_to_reserve, user_email, start_datetime, end_datetime)
 
 
@@ -41,7 +42,7 @@ def handle_reserve_desk(desk_name, user_email, start_datetime, end_datetime):
     else:
         st.error("Desk not found.")
 
-def test(plot_column):
+def calendar_visualisation(plot_column):
     reservations = DatabaseConnector().get_desk_reservations()
 
     # Convert reservation data to calendar events
@@ -80,4 +81,4 @@ def test(plot_column):
         st.subheader("Appointment Overview")
         # Display the calendar
         selected_date = calendar(events=calendar_events, options=calendar_options, custom_css=custom_css)
-        st.write(calendar)
+        st.write(selected_date)
