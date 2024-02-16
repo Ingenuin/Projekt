@@ -1,6 +1,8 @@
 import streamlit as st
 from users import User
 from desks import Desk
+from registrierung import Registrierung
+from tinydb import Query
 from database_inheritance import DatabaseConnector
 from streamlit_option_menu import option_menu
 import reservations as rs
@@ -11,20 +13,79 @@ desk_types = ['3D-printer', 'soldering_station (workbench)', 'AC', 'plain', 'wor
 st.set_page_config(layout="wide")
 menu_column, plot_column = st.columns([1.5, 1])
 
+def got_to_state_registrierung():
+    st.session_state["state"] = "registrierung"
+
+def got_to_state_login():
+    st.session_state["state"] = "login"
+
+def got_to_state_eingeloggt():
+    st.session_state["state"] = "eingeloggt"
+
 def main():
 
-    with menu_column:
+    if "state" not in st.session_state:
+        st.header("Studierendenwerkstatt")
 
-        selected = option_menu(None, ["User", "Desks", "Reservations"], 
-        icons=['universal-access', "ui-checks-grid", "calendar"], 
-        menu_icon="cast", default_index=0, orientation="horizontal")
+        st.button("Registrierung",on_click=got_to_state_registrierung)
 
-        if selected == "User":
-            manage_users()
-        elif selected == "Desks":
-            manage_desks()
-        elif selected == "Resrvations":
-            manage_reservations()
+        st.button("Login", on_click=got_to_state_login)
+
+
+    elif st.session_state["state"] == "registrierung":
+        with st.form("Registrierung"):
+            st.header("Registrierung")
+            
+            registrierung_username = st.text_input("Name")
+            registrierung_email = st.text_input("email")
+            registrierung_password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("speichern")
+            
+                
+            if submitted:
+                new_registrierung = Registrierung(registrierung_username, registrierung_email, registrierung_password)
+                new_registrierung.store()
+                st.success("Registrierung successful!")
+                got_to_state_login()
+ 
+    elif st.session_state["state"] == "login":
+        with st.form("Login"):
+            st.header("Login")
+            login_name = st.text_input("Name")
+            login_password = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Login")
+            
+            if submit:
+                user_query = Query().name == login_name
+                user_query &= Query().password == login_password
+
+                user_data = Registrierung.get_db_connector().get(user_query)
+
+                if user_data:
+                    st.success("Login successful!")
+                    got_to_state_eingeloggt()
+                    # Set the login state or perform other actions here
+                else:
+                    st.error("Invalid username or password.")
+                    
+
+
+    elif st.session_state["state"] == "eingeloggt":
+        with plot_column:
+            st.image('Labor.png')
+
+        with menu_column:
+            st.header("Studierendenwerkstatt")
+            selected = option_menu(None, ["User", "Desks", "Reservations"], 
+            icons=['universal-access', "ui-checks-grid", "calendar"], 
+            menu_icon="cast", default_index=0, orientation="horizontal")
+
+            if selected == "User":
+                manage_users()
+            elif selected == "Desks":
+                manage_desks()
+            elif selected == "Resrvations":
+                manage_reservations()
 
 
 def manage_users():
@@ -175,9 +236,6 @@ def delete_desk(desk_name):
 
 
 #def manage_reservations():
-
-with plot_column:
-    st.image('Labor.png')
 
 
 if __name__ == "__main__":

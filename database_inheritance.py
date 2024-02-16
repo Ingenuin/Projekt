@@ -31,6 +31,9 @@ class DatabaseConnector:
         if not self.__instance.db.table(table_name).contains(Query().id.exists()):
             self.__instance.db.table(table_name).insert({'id': 1, 'user_name': 'userone', 'email': 'userone@mci.edu'}) 
         return self.__instance.db.table(table_name)
+    
+    def get_registrierung_table(self) -> Table:
+        return TinyDB(self.__instance.path, storage=serializer).table('login')
 
 class DateSerializer(Serializer):
     OBJ_CLASS = date
