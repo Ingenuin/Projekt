@@ -1,18 +1,15 @@
 from serializer import Serializable
 from database_inheritance import DatabaseConnector
 from tinydb import Query
-import datetime
 
 desk_types = ['3D-printer', 'soldering_station', 'AC', 'plain']
 
 class Desk(Serializable):
 
-    def __init__(self, desk_name: str, desk_type: str,reservation_date_start: datetime = None, reservation_date_end:datetime = None):
+    def __init__(self, desk_name: str, desk_type: str):
         super().__init__(desk_name)
         self.desk_name = desk_name
         self.desk_type = desk_type
-        self.reservation_date_start = reservation_date_start
-        self.reservation_date_end = reservation_date_end
 
     @classmethod
     def get_db_connector(cls):
