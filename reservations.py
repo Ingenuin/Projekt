@@ -81,8 +81,7 @@ def change_reservation(desks, users):
             st.error("New end datetime should be after new start datetime.")
         else:
             
-            DatabaseConnector().update_reservation(user_email_to_change, desk_name_to_change,
-                                                   new_start_datetime, new_end_datetime)
+            DatabaseConnector().update_reservation(user_email_to_change, desk_name_to_change, new_start_datetime, new_end_datetime)
             st.success(f"Reservation for user {user_email_to_change} and desk {desk_name_to_change} changed successfully.")
 
 def calendar_visualisation(plot_column):
