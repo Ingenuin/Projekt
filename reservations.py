@@ -84,6 +84,30 @@ def change_reservation(desks, users):
             DatabaseConnector().update_reservation(user_email_to_change, desk_name_to_change, new_start_datetime, new_end_datetime)
             st.success(f"Reservation for user {user_email_to_change} and desk {desk_name_to_change} changed successfully.")
 
+def delete_reservation(desks, users):
+    st.subheader("Delete Reservation")
+
+    
+    user_email_to_delete = st.selectbox("Select user for reservation deletion:", [user['email'] for user in users])
+    desk_name_to_delete = st.selectbox("Select desk for reservation deletion:", [desk['desk_name'] for desk in desks])   
+    current_reservations = DatabaseConnector().get_user_desk_reservations(user_email_to_delete, desk_name_to_delete)
+    
+
+    if not current_reservations:
+        st.warning(f"No reservations found for user {user_email_to_delete} and desk {desk_name_to_delete}.")
+        return
+
+    st.subheader("Current Reservations")
+    for reservation in current_reservations:
+        start_datetime = dt.fromisoformat(reservation["start_datetime"])
+        end_datetime = dt.fromisoformat(reservation["end_datetime"])
+        st.write(f"Reservation from {start_datetime} to {end_datetime}")
+
+    if st.button("Delete Reservation"):
+        DatabaseConnector().delete_reservation(user_email_to_delete, desk_name_to_delete)
+        st.success(f"Reservation for user {user_email_to_delete} and desk {desk_name_to_delete} deleted successfully.")
+
+
 def calendar_visualisation(plot_column):
     reservations = DatabaseConnector().get_desk_reservations()
 

@@ -217,12 +217,19 @@ def display_desk_info(desks):
 
 def manage_reservations():
     desks = Desk.find_all()
-    action = option_menu(None, ["Add", "Change", "Delete"], 
-                        icons=['plus', 'arrow-repeat', "x"], 
-                        menu_icon="cast", default_index=0, orientation="horizontal")
-    
+    users = User.find_all()
+
+    action = option_menu(None, ["Add", "Change", "Delete"],
+                         icons=['plus', 'arrow-repeat', "x"],
+                         menu_icon="cast", default_index=0, orientation="horizontal")
+
     if action == "Add":
         rs.reserve_desk(desks, plot_column)
+    elif action == "Change":
+        rs.change_reservation(desks, users)
+    elif action == "Delete":
+        rs.delete_reservation(desks, users)
+
 
         
 if __name__ == "__main__":
