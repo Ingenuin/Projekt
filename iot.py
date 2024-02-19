@@ -1,10 +1,12 @@
 import streamlit as st
 from users import User
 from desks import Desk
+from reservation import Reservation 
 from users import Registrierung
 from tinydb import Query
 from streamlit_option_menu import option_menu
 import reservations as rs
+
 
 
 st.set_page_config(layout="wide")
@@ -38,7 +40,7 @@ def main():
 def login_form():
     with st.form("Login"):
         st.header("Login")
-        login_name = st.text_input("Name", placeholder="Admin")
+        login_name = st.text_input("Email", placeholder="admin@mci.edu")
         login_password = st.text_input("Password", type="password", placeholder="password")
         submit = st.form_submit_button("Login")
         
@@ -49,8 +51,7 @@ def login_form():
             user_data = Registrierung.get_db_connector().get(user_query)
 
             if user_data:
-                st.session_state["user_name"] = login_name
-                # Check the role of the user to determine the appropriate state
+                st.session_state["login_name"] = login_name
                 if user_data['role'] == 'admin':
                     st.success("Admin login successful!")
                     go_to_state_logged_in_as_admin()
@@ -66,7 +67,7 @@ def display_admin_interface():
         content_column, button_column = st.columns([1, 0.2])
 
         with button_column:
-            if st.button('Logout'):st.session_state["state"] = "login"
+            st.button('Logout',on_click=go_to_state_login)
         st.image('Labor.png')
 
     with menu_column:
@@ -80,22 +81,25 @@ def display_admin_interface():
         elif selected == "Desks":
             manage_desks()
         elif selected == "Reservations":
-            user_name = st.session_state["user_name"]
-            manage_reservations(admin_role, user_name)
+            user_name = st.session_state["login_name"]
+            student_id = st.session_state.get("student_id", None)
+            manage_reservations(admin_role, user_name, student_id)
 
 def display_user_interface():
     with plot_column:
         content_column, button_column = st.columns([1, 0.2])
 
         with button_column:
-            if st.button('Logout'):st.session_state["state"] = "login"
+            if st.button('Logout'):
+                st.session_state["state"] = "login"
         st.image('Labor.png')
 
     with menu_column:
         st.header("Students Workshop")
         admin_role = False
-        user_name = st.session_state["user_name"]
-        manage_reservations(admin_role, user_name)
+        user_email = st.session_state["login_name"]
+        student_id = st.session_state.get("student_id", None)
+        manage_reservations(admin_role, user_email, student_id)
 
 def manage_users():
     action = option_menu(None, ["Add", "Change", "Delete"], 
@@ -118,16 +122,17 @@ def add_new_user():
     user_name = st.text_input("Name:")
     user_email = st.text_input("Email:")
     user_roles = ["admin", "user"]
-    user_role = st.selectbox("Role: ",user_roles)
+    user_role = st.selectbox("Role:", user_roles)
     user_password = st.text_input("Password:", type="password", placeholder="Default: 12345678")
+    student_id = st.text_input("Student ID:")
 
     if st.button("Add User"):
         if not user_name or not user_email or not user_password or not user_role:
-            st.error("Name, email, role and password are required.")
+            st.error("Name, email, role, and password are required.")
         elif User.load_by_id(user_email):
             st.error("Email already in use. Please choose a different email.")
         else:
-            new_user = User(user_name, user_email, user_role, user_password)
+            new_user = User(user_name, user_email, user_role, user_password, student_id)
             new_user.store()
             st.success("User added successfully!")
 
@@ -136,6 +141,7 @@ def change_user():
     user_email_to_change = st.selectbox("Select user to change name:", [user['email'] for user in User.find_all()])
     new_name = st.text_input("Enter new name:")
     new_password = st.text_input("Enter new password:", type="password")
+    new_student_id = st.text_input("Enter new student ID:")
 
     if st.button("Change User"):
         user_to_change = User.load_by_id(user_email_to_change)
@@ -144,11 +150,12 @@ def change_user():
                 user_to_change.name = new_name
             if new_password:
                 user_to_change.password = new_password
+            if new_student_id:
+                user_to_change.student_id = new_student_id
             user_to_change.store()
             st.success("User changed successfully!")
         else:
             st.error("User not found.")
-
 
 def delete_user():
     st.subheader("Delete User")
@@ -252,7 +259,7 @@ def display_desk_info(desks):
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-def manage_reservations(admin_role, user_name):
+def manage_reservations(admin_role, user_name, student_id):
     desks = Desk.find_all()
     users = User.find_all()
 
@@ -261,12 +268,15 @@ def manage_reservations(admin_role, user_name):
                          menu_icon="cast", default_index=0, orientation="horizontal")
 
     if action == "Add":
-        rs.reserve_desk(desks, plot_column, user_name)
+        rs.reserve_desk(desks, plot_column, student_id)
     elif action == "Change":
-        rs.change_reservation(desks, users, admin_role, user_name)
+        rs.change_reservation(desks, users, user_name, student_id)
     elif action == "Delete":
-        rs.delete_reservation(desks, users, admin_role, user_name)
+        rs.delete_reservation(student_id)
 
-        
+
+
+
+
 if __name__ == "__main__":
     main()

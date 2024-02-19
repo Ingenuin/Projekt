@@ -4,12 +4,13 @@ from tinydb import Query
 
 class User(Serializable):
     
-    def __init__(self, name, email, role, password=None) -> None:
+    def __init__(self, name, email, role, password=None, student_id=None) -> None:
         super().__init__(email)
         self.name = name
         self.email = email
         self.password = password
         self.role = role
+        self.student_id = student_id
 
     @classmethod
     def get_db_connector(cls):
@@ -24,7 +25,7 @@ class User(Serializable):
         print("Loading user...")
         data = super().load_by_id(id)
         if data:
-            return cls(data['name'], data['email'], data['role'], data.get('password'))  # Get password if exists
+            return cls(data['name'], data['email'], data['role'], data.get('password'), data.get('student_id'))
         else:
             return None
         
@@ -39,7 +40,7 @@ class User(Serializable):
         return self.get_db_connector().contains(user_query)
 
     def __str__(self):
-        return F"User: {self.name} ({self.email})"
+        return f"User: {self.name} ({self.email}), Student ID: {self.student_id}"
 
     def __repr__(self):
         return self.__str__()

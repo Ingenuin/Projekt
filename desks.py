@@ -6,10 +6,11 @@ desk_types = ['3D-printer', 'soldering_station', 'AC', 'plain']
 
 class Desk(Serializable):
 
-    def __init__(self, desk_name: str, desk_type: str):
+    def __init__(self, desk_name: str, desk_type: str, status: str = "free"):
         super().__init__(desk_name)
         self.desk_name = desk_name
         self.desk_type = desk_type
+        self.status = status
 
     @classmethod
     def get_db_connector(cls):
@@ -24,7 +25,7 @@ class Desk(Serializable):
         print("Loading desk...")
         data = super().load_by_id(id)
         if data:
-            return cls(data['desk_name'], data['desk_type'])
+            return cls(data['desk_name'], data['desk_type'], data['status'])
         else:
             return None
     
@@ -33,7 +34,7 @@ class Desk(Serializable):
         print("Desk deleted.")
 
     def __str__(self) -> str:
-        return f"Desk: {self.desk_name} ({self.desk_type})\n"
+        return f"Desk: {self.desk_name} ({self.desk_type}), Status: {self.status}\n"
 
     def __repr__(self) -> str:
         return self.__str__()

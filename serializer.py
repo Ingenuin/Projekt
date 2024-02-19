@@ -28,6 +28,7 @@ class Serializable(ABC):
             return None
 
     def store(self) -> None:
+        print("HS")
         print("  Storing data...")
         query = Query()
         result = self.get_db_connector().search(query.id == self.id)
