@@ -6,7 +6,6 @@ from datetime import datetime, date, time
 from tinydb_serialization import Serializer, SerializationMiddleware
 from tinydb_serialization.serializers import DateTimeSerializer
 
-
 class DatabaseConnector:
     __instance = None
 
@@ -29,20 +28,20 @@ class DatabaseConnector:
 
         return desks_table
 
-    
     def get_users_table(self) -> Table:
         table_name = 'users'
         if not self.__instance.db.table(table_name).contains(Query().id.exists()):
             self.__instance.db.table(table_name).insert({'id': 'admin@mci.edu', 'name': 'Admin', 'email': 'admin@mci.edu', 'role':'admin', 'password': 'password'}) 
         return self.__instance.db.table(table_name)
 
-    def add_reservation_to_table(self, desk_name, user_email, start_datetime, end_datetime):
+    def add_reservation_to_table(self, reservation_id, desk_name, user_email, start_datetime, end_datetime):
         desks_table = self.get_desks_table()
         desk_query = Query().desk_name == desk_name
         desk_entry = desks_table.get(desk_query)
 
         if desk_entry:
             reservation_data = {
+                'id': reservation_id,
                 'desk_name': desk_name,
                 'user_email': user_email,
                 'start_datetime': start_datetime.isoformat(),
@@ -53,7 +52,7 @@ class DatabaseConnector:
             return True
         else:
             return False
-        
+
     def get_desk_reservations(self) -> list:
         desks_table = self.get_desks_table()
         reservations = []
