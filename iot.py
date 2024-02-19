@@ -3,62 +3,74 @@ from users import User
 from desks import Desk
 from users import Registrierung
 from tinydb import Query
-from database_inheritance import DatabaseConnector
 from streamlit_option_menu import option_menu
 import reservations as rs
 
 
-desk_types = ['3D-printer', 'soldering_station (workbench)', 'AC', 'plain', 'workbench']
-
 st.set_page_config(layout="wide")
-menu_column, plot_column = st.columns([1.5, 1])
+menu_column, plot_column = st.columns([1.2, 1])
 
 def go_to_state_login():
     st.session_state["state"] = "login"
 
 def go_to_state_logged_in_as_admin():
-    st.session_state["state"] = "logged_in_A"
+    st.session_state["state"] = "logged_in_a"
 
 def go_to_state_logged_in_as_user():
-    st.session_state["state"] = "logged_in_U"
+    st.session_state["state"] = "logged_in_u"
 
 def main():
 
     if "state" not in st.session_state:
-        st.header("Studierendenwerkstatt")
+        st.header("Student Workshop")
         go_to_state_login()
 
     if st.session_state["state"] == "login":
         login_form()
 
-    elif st.session_state["state"] == "logged_in_A":
-        display_dashboard()
+    elif st.session_state["state"] == "logged_in_a":
+        display_admin_interface()
+
+    elif st.session_state["state"] == "logged_in_u":
+        display_user_interface()
+
 
 def login_form():
     with st.form("Login"):
         st.header("Login")
-        login_name = st.text_input("Name", placeholder="admin")
-        login_password = st.text_input("Password", type="password",placeholder="12345678")
+        login_name = st.text_input("Name", placeholder="Admin")
+        login_password = st.text_input("Password", type="password", placeholder="password")
         submit = st.form_submit_button("Login")
         
         if submit:
+            # Query the database to check if the provided credentials are valid
             user_query = Query().name == login_name
             user_query &= Query().password == login_password
-
             user_data = Registrierung.get_db_connector().get(user_query)
 
             if user_data:
-                st.success("Login successful!")
-                go_to_state_logged_in_as_admin()
+                st.session_state["user_name"] = login_name
+                # Check the role of the user to determine the appropriate state
+                if user_data['role'] == 'admin':
+                    st.success("Admin login successful!")
+                    go_to_state_logged_in_as_admin()
+                else:
+                    st.success("Regular user login successful!")
+                    go_to_state_logged_in_as_user()
             else:
                 st.error("Invalid username or password.")
 
-def display_dashboard():
+def display_admin_interface():
+    admin_role=True
     with plot_column:
+        content_column, button_column = st.columns([1, 0.2])
+
+        with button_column:
+            st.button('Logout',on_click=go_to_state_login)
         st.image('Labor.png')
 
     with menu_column:
-        st.header("Studierendenwerkstatt")
+        st.header("Students Workshop")
         selected = option_menu(None, ["User", "Desks", "Reservations"], 
         icons=['universal-access', "ui-checks-grid", "calendar"], 
         menu_icon="cast", default_index=0, orientation="horizontal")
@@ -68,7 +80,22 @@ def display_dashboard():
         elif selected == "Desks":
             manage_desks()
         elif selected == "Reservations":
-            manage_reservations()
+            user_name = st.session_state["user_name"]
+            manage_reservations(admin_role, user_name)
+
+def display_user_interface():
+    with plot_column:
+        content_column, button_column = st.columns([1, 0.2])
+
+        with button_column:
+            st.button('Logout',on_click=go_to_state_login)
+        st.image('Labor.png')
+
+    with menu_column:
+        st.header("Students Workshop")
+        admin_role = False
+        user_name = st.session_state["user_name"]
+        manage_reservations(admin_role, user_name)
 
 def manage_users():
     action = option_menu(None, ["Add", "Change", "Delete"], 
@@ -90,15 +117,17 @@ def add_new_user():
     st.subheader("Add New User")
     user_name = st.text_input("Name:")
     user_email = st.text_input("Email:")
+    user_roles = ["admin", "user"]
+    user_role = st.selectbox("Role: ",user_roles)
     user_password = st.text_input("Password:", type="password", placeholder="Default: 12345678")
 
     if st.button("Add User"):
-        if not user_name or not user_email or not user_password:
-            st.error("Name, email, and password are required.")
+        if not user_name or not user_email or not user_password or not user_role:
+            st.error("Name, email, role and password are required.")
         elif User.load_by_id(user_email):
             st.error("Email already in use. Please choose a different email.")
         else:
-            new_user = User(user_name, user_email, user_password)
+            new_user = User(user_name, user_email, user_role, user_password)
             new_user.store()
             st.success("User added successfully!")
 
@@ -136,11 +165,20 @@ def delete_user():
 def display_existing_users():
     st.subheader("Existing Users")
     user_to_show = st.selectbox("Select user to display:", [user['email'] for user in User.find_all()])
-    st.text(User.load_by_id(user_to_show))
+    selected_user=User.load_by_id(user_to_show)
+
+    if selected_user:
+        st.text("User Info:")
+        st.text(f"Name: {selected_user.name}")
+        st.text(f"Email: {selected_user.email}")
+        st.text(f"Role: {selected_user.role}")
+    else:
+        st.text("User not found.")
 
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+desk_types = ['3D-printer', 'soldering_station (workbench)', 'AC', 'plain', 'workbench']
 
 def manage_desks():
     desks = Desk.find_all()
@@ -202,27 +240,32 @@ def delete_desk(desks):
             st.error("Desk not found.")
 
 def display_desk_info(desks):
-    desk_to_show = st.selectbox("Select desk to display:", [desk['desk_name'] for desk in desks])
+    desk_to_show = st.selectbox("Select desk to display info:", [desk['desk_name'] for desk in desks])
     selected_desk = Desk.load_by_id(desk_to_show)
 
     if selected_desk:
         st.text("Desk Info:")
         st.text(f"  ID: {selected_desk.id}")
-        st.text(f"  Desk Name: {selected_desk.desk_name}")
         st.text(f"Desktype: {selected_desk.desk_type}")
     else:
         st.text("Desk not found.")
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-def manage_reservations():
+def manage_reservations(admin_role, user_name):
     desks = Desk.find_all()
-    action = option_menu(None, ["Add", "Change", "Delete"], 
-                        icons=['plus', 'arrow-repeat', "x"], 
-                        menu_icon="cast", default_index=0, orientation="horizontal")
-    
+    users = User.find_all()
+
+    action = option_menu(None, ["Add", "Change", "Delete"],
+                         icons=['plus', 'arrow-repeat', "x"],
+                         menu_icon="cast", default_index=0, orientation="horizontal")
+
     if action == "Add":
-        rs.reserve_desk(desks, plot_column)
+        rs.reserve_desk(desks, plot_column, user_name)
+    elif action == "Change":
+        rs.change_reservation(desks, users, admin_role, user_name)
+    elif action == "Delete":
+        rs.delete_reservation(desks, users, admin_role, user_name)
 
         
 if __name__ == "__main__":

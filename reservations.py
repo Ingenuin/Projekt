@@ -1,13 +1,13 @@
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt, timedelta, time
 import streamlit as st
 from desks import Desk
 from users import User
 from database_inheritance import DatabaseConnector
 from streamlit_calendar import calendar
 
-def reserve_desk(desks, plot_column):
+def reserve_desk(desks, plot_column, user_name):
 
-    st.subheader("Reserve Desk")
+    st.subheader("Add Reservation")
     desk_name_to_reserve = st.selectbox("Select desk to reserve:", [desk['desk_name'] for desk in desks])
     user_email = st.selectbox("Select user for reservation:", [user['email'] for user in User.find_all()])
 
@@ -16,8 +16,8 @@ def reserve_desk(desks, plot_column):
     end_date = st.date_input("Select end date:")
 
     # Time selection
-    start_time = st.time_input("Select start time:", key="start_time")
-    end_time = st.time_input("Select end time:", key="end_time")
+    start_time = st.time_input("Select start time (opening at 06:00 am):", key="start_time", value = "now")
+    end_time = st.time_input("Select end time (closing at 07:00 pm):", key="end_time", value = "now")
 
     calendar_visualisation(plot_column)   
 
@@ -42,15 +42,15 @@ def handle_reserve_desk(desk_name, user_email, start_datetime, end_datetime):
     else:
         st.error("Desk not found.")
 
-def change_reservation(desks, users):
+def change_reservation(desks, users, admin_role, user_name):
     st.subheader("Change Reservation")
 
-    user_email_to_change = st.selectbox("Select user for reservation change:", [user['email'] for user in users])
-
-    desk_name_to_change = st.selectbox("Select desk for reservation change:", [desk['desk_name'] for desk in desks])
-
-    current_reservations = DatabaseConnector().get_user_desk_reservations(user_email_to_change, desk_name_to_change)
-
+    if not admin_role:
+        current_reservations = DatabaseConnector().get_user_reservations(user_name)
+    else:
+        user_email_to_change = st.selectbox("Select user for reservation change:", [user['email'] for user in users])
+        desk_name_to_change = st.selectbox("Select desk for reservation change:", [desk['desk_name'] for desk in desks])
+        current_reservations = DatabaseConnector().get_user_desk_reservations(user_email_to_change, desk_name_to_change)
     
     if not current_reservations:
         st.warning(f"No reservations found for user {user_email_to_change} and desk {desk_name_to_change}.")
@@ -66,8 +66,8 @@ def change_reservation(desks, users):
     st.subheader("Select New Reservation Details")
     new_start_date = st.date_input("Select new start date:", min_value=dt.today().date(), value=None)
     new_end_date = st.date_input("Select new end date:")
-    new_start_time = st.time_input("Select new start time:", key="new_start_time")
-    new_end_time = st.time_input("Select new end time:", key="new_end_time")
+    new_start_time = st.time_input("Select new start time (opening at 06:00 am):", key="new_start_time", value = "now")
+    new_end_time = st.time_input("Select new end time(closing at 07:00 pm):", key="new_end_time", value = "now")
 
     if st.button("Change Reservation"):
         
@@ -84,6 +84,31 @@ def change_reservation(desks, users):
             DatabaseConnector().update_reservation(user_email_to_change, desk_name_to_change, new_start_datetime, new_end_datetime)
             st.success(f"Reservation for user {user_email_to_change} and desk {desk_name_to_change} changed successfully.")
 
+def delete_reservation(desks, users, admin_role, user_name):
+    st.subheader("Delete Reservation")
+
+    if not admin_role:
+        current_reservations = DatabaseConnector().get_user_reservations(user_name)
+    else:
+        user_email_to_delete = st.selectbox("Select user for reservation deletion:", [user['email'] for user in users])
+        desk_name_to_delete = st.selectbox("Select desk for reservation deletion:", [desk['desk_name'] for desk in desks])
+        current_reservations = DatabaseConnector().get_user_desk_reservations(user_email_to_delete, desk_name_to_delete)
+
+    if not current_reservations:
+        st.warning(f"No reservations found for user {user_email_to_delete} and desk {desk_name_to_delete}.")
+        return
+
+    st.subheader("Current Reservations")
+    for reservation in current_reservations:
+        start_datetime = dt.fromisoformat(reservation["start_datetime"])
+        end_datetime = dt.fromisoformat(reservation["end_datetime"])
+        st.write(f"Reservation from {start_datetime} to {end_datetime}")
+
+    if st.button("Delete Reservation"):
+        DatabaseConnector().delete_reservation(user_email_to_delete, desk_name_to_delete)
+        st.success(f"Reservation for user {user_email_to_delete} and desk {desk_name_to_delete} deleted successfully.")
+
+
 def calendar_visualisation(plot_column):
     reservations = DatabaseConnector().get_desk_reservations()
 
@@ -99,11 +124,11 @@ def calendar_visualisation(plot_column):
 
     # Define calendar options
     calendar_options = {
-        "editable": False,
-        "selectable": False,
+        "editable": True,
+        "selectable": True,
         "initialView": "timeGridWeek",  # Display weekly view
-        "slotMinTime": "06:00:00",
-        "slotMaxTime": "20:00:00",
+        "slotMinTime": "08:00:00",
+        "slotMaxTime": "19:00:00",
         "headerToolbar": {
             "left": "today prev,next",
             "center": "title",
@@ -117,9 +142,10 @@ def calendar_visualisation(plot_column):
             font-weight: bold;
         }
     """
+    
 
     with plot_column:
         st.subheader("Appointment Overview")
         # Display the calendar
         selected_date = calendar(events=calendar_events, options=calendar_options, custom_css=custom_css)
-        st.write(selected_date)
+        #st.write(selected_date)
