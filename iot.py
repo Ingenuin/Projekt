@@ -68,6 +68,7 @@ def display_admin_interface():
 
         with button_column:
             st.button('Logout',on_click=go_to_state_login)
+            st.button('Logout',on_click=go_to_state_login)
         st.image('Labor.png')
 
     with menu_column:
