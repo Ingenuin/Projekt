@@ -66,7 +66,7 @@ def display_admin_interface():
         content_column, button_column = st.columns([1, 0.2])
 
         with button_column:
-            if st.button('Logout'):st.session_state["state"] = "login"
+            st.button('Logout',on_click=go_to_state_login)
         st.image('Labor.png')
 
     with menu_column:
@@ -88,7 +88,7 @@ def display_user_interface():
         content_column, button_column = st.columns([1, 0.2])
 
         with button_column:
-            if st.button('Logout'):st.session_state["state"] = "login"
+            st.button('Logout',on_click=go_to_state_login)
         st.image('Labor.png')
 
     with menu_column:
