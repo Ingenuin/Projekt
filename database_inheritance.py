@@ -33,7 +33,7 @@ class DatabaseConnector:
     def get_users_table(self) -> Table:
         table_name = 'users'
         if not self.__instance.db.table(table_name).contains(Query().id.exists()):
-            self.__instance.db.table(table_name).insert({'id': 'admin@mci.edu', 'name': 'Admin', 'email': 'admin@mci.edu','password': 'password'}) 
+            self.__instance.db.table(table_name).insert({'id': 'admin@mci.edu', 'name': 'Admin', 'email': 'admin@mci.edu', 'role':'admin', 'password': 'password'}) 
         return self.__instance.db.table(table_name)
 
     def add_reservation_to_table(self, desk_name, user_email, start_datetime, end_datetime):
